@@ -4,16 +4,19 @@ namespace Anticom\ExceptionAggregator\Voter;
 
 use Exception;
 
-class InstanceofAggregationVoter implements AggregationVoter {
+class InstanceofAggregationVoter implements AggregationVoterInterface
+{
     protected $aggregate;
 
-    public function __construct($aggregate = []) {
+    public function __construct($aggregate = [])
+    {
         $this->aggregate = $aggregate;
     }
 
-    public function vote(Exception $exception) {
-        foreach($this->aggregate as $aggregate) {
-            if($exception instanceof $aggregate) {
+    public function vote(Exception $exception)
+    {
+        foreach ($this->aggregate as $aggregate) {
+            if ($exception instanceof $aggregate) {
                 return true;
             }
         }

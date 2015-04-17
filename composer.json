@@ -1,0 +1,17 @@
+{
+  "name": "Anticom/exception_aggregator",
+  "description": "Experimental automatic Exception aggregation",
+  "minimum-stability": "dev",
+  "license": "LGPL",
+  "authors": [
+    {
+      "name": "Timo Muehlbach",
+      "email": "anticom@hotmail.de"
+    }
+  ],
+  "autoload": {
+    "psr-0": {
+      "Anticom\\ExceptionAggregator": "lib/"
+    }
+  }
+}

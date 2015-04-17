@@ -1,36 +1,65 @@
 <?php
 
 namespace Anticom\ExceptionAggregator;
+
 use Exception;
 
 /**
  * Class AggregationManager
  * Manages ExceptionAggregators
  */
-class AggregationManager {
+class AggregationManager
+{
+    protected static $instance = null;
+
     /** @var  ExceptionAggregator[] */
     protected $aggregators;
     protected $enabledAggregators = array();
 
     protected $fetchingActive = false;
-    protected $shutdownHandlerActive = true;
+    //TODO what was this for again?! --> shutdown handler for fatal errors maybe? Or handle unhandled exceptions
+    protected $shutdownHandlerActive = false;
 
-    public function __construct($aggregators = []) {
+    public function __construct($aggregators = [], $autostartFetching = true)
+    {
         $this->setAggregators($aggregators);
+
+        if($autostartFetching) $this->enableFetching();
+    }
+
+    public static function getInstance() {
+        if(null === self::$instance) {
+            self::$instance = new self;
+        }
+
+        return self::$instance;
     }
 
     #region aggregator management
-    public function addAggregator(ExceptionAggregator $aggregator, $enable = true) {
+    /**
+     * @param ExceptionAggregator $aggregator
+     * @param bool $enable
+     * @return $this
+     */
+    public function addAggregator(ExceptionAggregator $aggregator, $enable = true)
+    {
         $hash = spl_object_hash($aggregator);
 
         $this->aggregators[$hash] = $aggregator;
-        if($enable) {
+        if ($enable) {
             $this->enableAggregator($aggregator);
         }
+
+        return $this;
     }
 
-    public function removeAggregator(ExceptionAggregator $aggregator) {
-        if(in_array($aggregator, $this->aggregators)) {
+    /**
+     * @param ExceptionAggregator $aggregator
+     * @return bool
+     */
+    public function removeAggregator(ExceptionAggregator $aggregator)
+    {
+        if (in_array($aggregator, $this->aggregators)) {
             $hash = spl_object_hash($aggregator);
             unset($this->aggregators[$hash]);
 
@@ -41,64 +70,75 @@ class AggregationManager {
         return false;
     }
 
-    public function clearAggregators() {
+    public function clearAggregators()
+    {
         $this->aggregators = [];
     }
 
-    public function getAggregators() {
+    public function getAggregators()
+    {
         return $this->aggregators;
     }
 
-    public function setAggregators($aggregators) {
+    /**
+     * @param ExceptionAggregator[] $aggregators
+     */
+    public function setAggregators($aggregators)
+    {
         $this->clearAggregators();
-        foreach($aggregators as $a) {
+        foreach ($aggregators as $a) {
             $this->addAggregator($a);
         }
     }
 
-    public function enableAggregator(ExceptionAggregator $aggregator) {
+    public function enableAggregator(ExceptionAggregator $aggregator)
+    {
         $hash = spl_object_hash($aggregator);
-        if(!in_array($hash, $this->enabledAggregators)) {
+        if (!in_array($hash, $this->enabledAggregators)) {
             $this->enabledAggregators[] = $hash;
         }
     }
 
-    public function disableAggregator(ExceptionAggregator $aggregator) {
+    public function disableAggregator(ExceptionAggregator $aggregator)
+    {
         $hash = spl_object_hash($aggregator);
-        if(in_array($hash, $this->enabledAggregators)) {
+        if (in_array($hash, $this->enabledAggregators)) {
             unset($this->enabledAggregators[$hash]);
         }
     }
     #endregion
 
     #region behaviour
-    public function enableFetching() {
-        if(!$this->fetchingActive) {
+    public function enableFetching()
+    {
+        if (!$this->fetchingActive) {
             set_exception_handler([$this, 'handleException']);
 
             $this->fetchingActive = true;
         }
     }
 
-    public function disableFetching() {
-        if($this->fetchingActive) {
+    public function disableFetching()
+    {
+        if ($this->fetchingActive) {
             restore_exception_handler();
 
             $this->fetchingActive = false;
         }
     }
 
-    public function handleException(Exception $exception) {
+    public function handleException(Exception $exception)
+    {
         $aggregators = $this->getEnabledAggregators();
         $handled = false;
 
-        foreach($aggregators as $a) {
-            if($a->handle($exception)) {
+        foreach ($aggregators as $a) {
+            if ($a->handle($exception)) {
                 $handled = true;
             }
         }
 
-        if(!$handled) {
+        if (!$handled) {
             $this->disableFetching();
             throw $exception;
         }
@@ -109,12 +149,13 @@ class AggregationManager {
     /**
      * @return ExceptionAggregator[]
      */
-    protected function getEnabledAggregators() {
+    protected function getEnabledAggregators()
+    {
         $enabled = [];
 
-        foreach($this->aggregators as $a) {
+        foreach ($this->aggregators as $a) {
             $hash = spl_object_hash($a);
-            if(in_array($hash, $this->enabledAggregators)) {
+            if (in_array($hash, $this->enabledAggregators)) {
                 $enabled[] = $a;
             }
         }

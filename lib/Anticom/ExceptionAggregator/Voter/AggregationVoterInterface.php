@@ -4,7 +4,8 @@ namespace Anticom\ExceptionAggregator\Voter;
 
 use Exception;
 
-interface AggregationVoter {
+interface AggregationVoterInterface
+{
     /**
      * Checks, whether a concrete Exception should be aggregated or bubble up the call stack
      *
